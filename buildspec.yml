@@ -1,0 +1,37 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    DOCKER_USERNAME: secret-manager/DOCKER_USERNAME
+    DOCKER_PASSWORD: secret-manager/DOCKER_PASSWORD
+
+phases:
+  install:
+    runtime-versions:
+      docker: 20
+      python: 3.x
+    commands:
+      - echo Installing Packer...
+      - curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+      - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+      - apt-get update && apt-get install -y packer unzip
+      - packer --version
+
+  pre_build:
+    commands:
+      - echo Logging in to Docker Hub...
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
+  build:
+    commands:
+      - echo Starting Packer build...
+      - packer init .
+      - packer build .
+
+  post_build:
+    commands:
+      - echo Build completed successfully.
+
+artifacts:
+  files:
+    - '**/*'
